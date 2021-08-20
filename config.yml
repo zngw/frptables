@@ -1,0 +1,48 @@
+# 启用防火墙类型 iptables / firewall
+TablesType: firewall
+
+# 允许访问，白名单
+Allow:
+
+# 拒绝访问，黑名单
+Refuse:
+
+# 规则访问
+Rules:
+
+  # IP区域判定，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
+  # 以 http://ip-api.com/json/?lang=en 查询的结果为准
+  # * 标识通配符
+  # rules: Allow-允许，Refuse-拒绝，Skip-跳过当前规则
+  Iplocation:
+
+    - # 中国浙江杭州IP允许
+      port: *
+      country: China
+      region: ZJ
+      city: Hangzhou
+      rules: Allow
+
+    - # 中国地区IP跳过地域判断
+      port: *
+      country: China
+      region: *
+      city: *
+      rules: Allow
+
+    - # 其他地区IP禁止
+      port: *
+      country: *
+      region: *
+      city: *
+      rules: Refuse
+
+  # IP频率判断，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
+  # ip访问同一/任一端口，在指定时间超出指定次数后直接拒绝访问
+  # * 标识通配符
+  IpRate:
+
+    - #
+      port: *
+      time: 600
+      count: 3
