@@ -128,5 +128,33 @@ func checkRate(ip string, port int) (refuse bool, count int) {
 }
 
 func refuse(ip, name string, port int) {
+	result := ""
+	switch config.Cfg.TablesType {
+	case "iptables":
+		cmd := ""
+		if port == -1 {
+			cmd = fmt.Sprintf("iptables -I INPUT -s %s -j DROP", ip)
+		} else {
+			cmd = fmt.Sprintf("iptables -I INPUT -s %s -ptcp --dport %d -j DROP", ip, port)
+		}
 
+		result = util.Command("/bin/bash", "-c", cmd)
+
+	case "firewall":
+		cmd := ""
+		if port == -1 {
+			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" reject\"", ip)
+		} else {
+			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" port protocol=\"tcp\" port=\"%d\" reject\"", ip, port)
+		}
+		result = util.Command("/bin/bash", "-c", cmd)
+		util.Command("/bin/bash", "-c", "firewall-cmd --reload")
+	case "md":
+		// TODO by 55
+		// result = util.Command("‪C:\\Windows\\System32\\cmd.exe", "dir")
+	}
+
+	if result != "" {
+		log.Trace("sys", result)
+	}
 }

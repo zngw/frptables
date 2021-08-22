@@ -7,6 +7,7 @@ package config
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"path/filepath"
 )
 
 var Cfg Conf
@@ -43,7 +44,8 @@ type CfgRate struct {
 }
 
 func (c *Conf) Init(file string) (err error) {
-	yamlFile, err := ioutil.ReadFile(file)
+	refile, _ := filepath.Abs(file)
+	yamlFile, err := ioutil.ReadFile(refile)
 	if err != nil {
 		return
 	}

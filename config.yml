@@ -8,7 +8,7 @@ logs: ./tlog/
 name_port:
   "ZNGW": 3389
 
-# 启用防火墙类型 iptables / firewall
+# 启用防火墙类型 iptables / firewall / md (Microsoft Defender)
 tables_type: firewall
 
 # ip白名单:
