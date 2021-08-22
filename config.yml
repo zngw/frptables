@@ -1,48 +1,56 @@
+# frps日志文件
+frps_log: ./log/frps.log
+
+# 输出日志目录
+logs: ./tlog/
+
+# frps 名字端口对应配置
+name_port:
+  "ZNGW": 3389
+
 # 启用防火墙类型 iptables / firewall
-TablesType: firewall
+tables_type: firewall
 
-# 允许访问，白名单
-Allow:
-
-# 拒绝访问，黑名单
-Refuse:
+# 白名单:
+allow:
+  - 127.0.0.1
 
 # 规则访问
-Rules:
+rules:
 
   # IP区域判定，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
-  # 以 http://ip-api.com/json/?lang=en 查询的结果为准
-  # * 标识通配符
+  # 以 http://ip-api.com/json/?lang=zh-CN 查询的结果为准
+  # 端口 -1 所有端口
   # rules: Allow-允许，Refuse-拒绝，Skip-跳过当前规则
-  Iplocation:
+  location:
 
     - # 中国浙江杭州IP允许
-      port: *
-      country: China
-      region: ZJ
-      city: Hangzhou
+      port: -1
+      country: 中国
+      regionName: 浙江
+      city: 杭州
       rules: Allow
 
     - # 中国地区IP跳过地域判断
-      port: *
-      country: China
-      region: *
-      city: *
-      rules: Allow
+      port: -1
+      country: 中国
+      regionName:
+      city:
+      rules: Skip
 
     - # 其他地区IP禁止
-      port: *
-      country: *
-      region: *
-      city: *
+      port: -1
+      country:
+      regionName:
+      city:
       rules: Refuse
 
   # IP频率判断，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
   # ip访问同一/任一端口，在指定时间超出指定次数后直接拒绝访问
-  # * 标识通配符
-  IpRate:
+  # 端口 -1 所有端口
+  rate:
 
     - #
-      port: *
+      port: -1
       time: 600
       count: 3
