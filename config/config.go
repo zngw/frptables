@@ -17,7 +17,8 @@ type Conf struct {
 	Logs       string         `yaml:"logs,omitempty"`        // 自身日志文件
 	NamePort   map[string]int `yaml:"name_port,omitempty"`   // 名字端口对应表
 	TablesType string         `yaml:"tables_type,omitempty"` // 启用防火墙类型
-	Allow      []string       `yaml:"allow,omitempty"`       // 白名单
+	AllowIp    []string       `yaml:"allow_ip,omitempty"`    // ip白名单
+	AllowPort  []int          `yaml:"allow_port,omitempty"`  // 端口白名单
 	Rules      CfgRules       `yaml:"rules,omitempty"`       // 规则访问
 }
 

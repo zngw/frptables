@@ -11,9 +11,14 @@ name_port:
 # 启用防火墙类型 iptables / firewall
 tables_type: firewall
 
-# 白名单:
-allow:
+# ip白名单:
+allow_ip:
   - 127.0.0.1
+
+# 端口白名单
+allow_port:
+  - 80
+  - 443
 
 # 规则访问
 rules:

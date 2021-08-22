@@ -21,7 +21,7 @@ func Init() {
 
 func check(ip, name string, port int) {
 
-	if checkAllow(ip) {
+	if checkAllow(ip, port) {
 		log.Trace("link", name, ip, port, "is allow")
 		return
 	}
@@ -48,9 +48,15 @@ func check(ip, name string, port int) {
 	log.Trace("link", fmt.Sprintf("rules allow: [%s]%s:%d %s", name, ip, port, desc))
 }
 
-func checkAllow(ip string) bool {
-	for _, v := range config.Cfg.Allow {
+func checkAllow(ip string, port int) bool {
+	for _, v := range config.Cfg.AllowIp {
 		if v == ip {
+			return true
+		}
+	}
+
+	for _, v := range config.Cfg.AllowPort {
+		if v == port {
 			return true
 		}
 	}
