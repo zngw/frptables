@@ -1,7 +1,25 @@
-// @Title
-// @Description $
-// @Author  55
-// @Date  2021/8/21
+//MIT License
+//
+//Copyright (c) 2021 zngw
+//
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
+//
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+//
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
+
 package main
 
 import (
@@ -19,19 +37,26 @@ import (
 func main() {
 	// 读取命令行配置文件参数
 	c := flag.String("c", "./config.yml", "默认配置为 config.yml")
+	s := flag.String("s", "", "默认配置为空")
 	flag.Parse()
 
+	if *s == "reload" {
+		// 如果是reload，发送reload指令后退出
+		config.SendReload()
+		return
+	}
+
 	// 初始化配置
-	err := config.Cfg.Init(*c)
+	err := config.Init(*c)
 	if err != nil {
 		panic(err)
 	}
 
 	// 初始化日志
 	_, file := filepath.Split(os.Args[0])
-	log_file, _ := filepath.Abs(config.Cfg.Logs)
-	log_file = filepath.Join(config.Cfg.Logs, file)
-	err = log.Init(log_file, []string{"add", "link", "net", "sys"})
+	logFile, _ := filepath.Abs(config.Cfg.Logs)
+	logFile = filepath.Join(config.Cfg.Logs, file)
+	err = log.Init(logFile, []string{"add", "link", "net", "sys"})
 	if err != nil {
 		panic(err)
 	}
@@ -40,8 +65,8 @@ func main() {
 	rules.Init()
 
 	// 启动用tail监听
-	frp_log, _ := filepath.Abs(config.Cfg.FrpsLog)
-	tails, err := tail.TailFile(frp_log, tail.Config{
+	frpLog, _ := filepath.Abs(config.Cfg.FrpsLog)
+	tails, err := tail.TailFile(frpLog, tail.Config{
 		ReOpen:    true,                                 // 重新打开
 		Follow:    true,                                 // 是否跟随
 		Location:  &tail.SeekInfo{Offset: 0, Whence: 2}, // 从文件的哪个地方开始读

@@ -1,7 +1,25 @@
-// @Title
-// @Description $
-// @Author  55
-// @Date  2021/8/22
+//MIT License
+//
+//Copyright (c) 2021 zngw
+//
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
+//
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+//
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
+
 package rules
 
 import (
@@ -128,32 +146,30 @@ func checkRate(ip string, port int) (refuse bool, count int) {
 }
 
 func refuse(ip, name string, port int) {
-	result := ""
+	cmd := ""
 	switch config.Cfg.TablesType {
 	case "iptables":
-		cmd := ""
 		if port == -1 {
 			cmd = fmt.Sprintf("iptables -I INPUT -s %s -j DROP", ip)
 		} else {
 			cmd = fmt.Sprintf("iptables -I INPUT -s %s -ptcp --dport %d -j DROP", ip, port)
 		}
-
-		result = util.Command("/bin/bash", "-c", cmd)
-
 	case "firewall":
-		cmd := ""
 		if port == -1 {
 			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" reject\"", ip)
 		} else {
 			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" port protocol=\"tcp\" port=\"%d\" reject\"", ip, port)
 		}
-		result = util.Command("/bin/bash", "-c", cmd)
-		util.Command("/bin/bash", "-c", "firewall-cmd --reload")
+		cmd += "&& firewall-cmd --reload"
 	case "md":
-		// TODO by 55
-		// result = util.Command("‪C:\\Windows\\System32\\cmd.exe", "dir")
+		if port == -1 {
+			cmd = fmt.Sprintf("netsh advfirewall firewall add rule name=%s-%s dir=in action=block protocol=TCP remoteip=%s", name, ip, ip)
+		} else {
+			cmd = fmt.Sprintf("netsh advfirewall firewall add rule name=%s-%s-%d dir=in action=block protocol=TCP remoteip=%s localport=%d", name, ip, port, ip, port)
+		}
 	}
 
+	result := util.Command(cmd)
 	if result != "" {
 		log.Trace("sys", result)
 	}
