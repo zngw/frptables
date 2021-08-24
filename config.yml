@@ -23,39 +23,32 @@ allow_port:
 # 规则访问
 rules:
 
-  # IP区域判定，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
-  # 以 http://ip-api.com/json/?lang=zh-CN 查询的结果为准
-  # 端口 -1 所有端口
-  # rules: Allow-允许，Refuse-拒绝，Skip-跳过当前规则
-  location:
+  # 按数组顺序来，匹配到了就按匹配的规则执行，跳过此规则。
+  # 地区以 http://ip-api.com/json/?lang=zh-CN 查询的结果为准
+  # 端口: -1 所有端口
+  # time: 时间区间
+  # count: 访问次数，-1不限，0限制。其他为 time时间内访问count次，超出频率就限制
 
-    - # 中国浙江杭州IP允许
-      port: -1
-      country: 中国
-      regionName: 浙江
-      city: 杭州
-      rules: Allow
+  - # 中国上海IP允许
+    port: -1
+    country: 中国
+    regionName: 上海
+    city: 上海
+    time: 1
+    count: -1
 
-    - # 中国地区IP跳过地域判断
-      port: -1
-      country: 中国
-      regionName:
-      city:
-      rules: Skip
+  - # 中国地区IP跳过地域判断
+    port: -1
+    country: 中国
+    regionName:
+    city:
+    time: 600
+    count: 3
 
-    - # 其他地区IP禁止
-      port: -1
-      country:
-      regionName:
-      city:
-      rules: Refuse
-
-  # IP频率判断，按数组顺序来，匹配到了就按匹配的规则执行，未匹配到跳过此规则。
-  # ip访问同一/任一端口，在指定时间超出指定次数后直接拒绝访问
-  # 端口 -1 所有端口
-  rate:
-
-    - #
-      port: -1
-      time: 600
-      count: 3
+  - # 其他地区IP禁止
+    port: -1
+    country:
+    regionName:
+    city:
+    time: 1
+    count: 0

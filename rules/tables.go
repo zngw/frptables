@@ -34,7 +34,7 @@ func Check(text string) {
 		return
 	}
 
-	check(ip, name, port)
+	rules(ip, name, port)
 
 	return
 }

@@ -63,7 +63,7 @@ func rateInit() {
 	// 异步清理
 	go func() {
 		for {
-			delTime := time.Now().Unix() - config.Cfg.Rules.RateMaxTime
+			delTime := time.Now().Unix() - config.Cfg.RateMaxTime
 			var del []string
 			ips.Range(func(k, v interface{}) bool {
 				h := v.(*history)
@@ -86,7 +86,7 @@ func rateInit() {
 				ips.Delete(k)
 			}
 
-			time.Sleep(time.Second * time.Duration(config.Cfg.Rules.RateMaxTime))
+			time.Sleep(time.Second * time.Duration(config.Cfg.RateMaxTime))
 		}
 	}()
 }

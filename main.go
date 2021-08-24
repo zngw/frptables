@@ -78,6 +78,8 @@ func main() {
 		log.Error("tail file failed, err:", err)
 		return
 	}
+
+	log.Trace("sys", "frptables 已启动，正在监听日志文件：", frpLog)
 	var line *tail.Line
 	var ok bool
 

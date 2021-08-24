@@ -29,10 +29,6 @@ import (
 	"github.com/zngw/log"
 )
 
-const RuleAllow = "Allow"
-const RuleRefuse = "Refuse"
-const RuleSkip = "Skip"
-
 // 拦截IP-端口，因为验证ip有时间差，攻击频率太高会导致防火墙重复添加。
 var RefuseMap = make(map[string]bool)
 
@@ -40,33 +36,22 @@ func Init() {
 	rateInit()
 }
 
-func check(ip, name string, port int) {
-
+func rules(ip, name string, port int) {
+	// 检查白名单
 	if checkAllow(ip, port) {
 		log.Trace("link", name, ip, port, "is allow")
 		return
 	}
 
-	rule, desc, p := checkLocation(ip, port)
-	if rule == RuleAllow {
-		log.Trace("link", fmt.Sprintf("location allow: [%s]%s:%d %s", name, ip, port, desc))
-		return
-	}
-
-	if rule == RuleRefuse {
+	result, desc, p, count := checkRules(ip, port)
+	if result {
 		refuse(ip, name, p)
-		log.Trace("add", fmt.Sprintf("location refuse: [%s]%s:%d %s", name, ip, port, desc))
+		log.Trace("add", fmt.Sprintf("refuse: [%s]%s:%d ->%d, %s", name, ip, port, count, desc))
+		return
+	} else {
+		log.Trace("link", fmt.Sprintf("allow: [%s]%s:%d ->%d, %s", name, ip, port, count, desc))
 		return
 	}
-
-	r, c := checkRate(ip, port)
-	if r {
-		refuse(ip, name, p)
-		log.Trace("add", fmt.Sprintf("rate refuse: [%s]%s:%d %s ->%d", name, ip, port, desc, c))
-		return
-	}
-
-	log.Trace("link", fmt.Sprintf("rules allow: [%s]%s:%d %s", name, ip, port, desc))
 }
 
 func checkAllow(ip string, port int) bool {
@@ -85,16 +70,16 @@ func checkAllow(ip string, port int) bool {
 	return false
 }
 
-func checkLocation(ip string, port int) (rule, desc string, p int) {
+func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 	ipInfo := util.GetIpInfo(ip)
 	if ipInfo.Status != "success" {
 		// 地址获取不成功，跳过
-		rule = RuleSkip
+		refuse = false
 		p = -1
 		return
 	}
 
-	for _, v := range config.Cfg.Rules.Location {
+	for _, v := range config.Cfg.Rules {
 		if v.Port != -1 && v.Port != port {
 			// 端口不匹配
 			continue
@@ -115,24 +100,22 @@ func checkLocation(ip string, port int) (rule, desc string, p int) {
 			continue
 		}
 
-		desc = fmt.Sprintf("%s,%s,%s", ipInfo.Country, ipInfo.RegionName, ipInfo.City)
-		rule = v.Rules
 		p = v.Port
-		return
-	}
+		desc = fmt.Sprintf("%s,%s,%s", ipInfo.Country, ipInfo.RegionName, ipInfo.City)
 
-	return
-}
-
-func checkRate(ip string, port int) (refuse bool, count int) {
-	info := getIpHistory(ip, port)
-
-	for _, v := range config.Cfg.Rules.Rate {
-		if v.Port != -1 && v.Port != port {
-			// 端口不匹配
-			continue
+		// 跳过
+		if v.Count < 0 {
+			refuse = false
+			return
 		}
 
+		// 拒绝访问
+		if v.Count == 0 {
+			refuse = true
+			return
+		}
+
+		info := getIpHistory(ip, port)
 		count = info.Count(v.Time)
 		if count <= v.Count {
 			refuse = false
@@ -141,7 +124,6 @@ func checkRate(ip string, port int) (refuse bool, count int) {
 
 		refuse = true
 		delIpHistory(ip, port)
-
 		return
 	}
 
