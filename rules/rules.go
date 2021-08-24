@@ -33,6 +33,9 @@ const RuleAllow = "Allow"
 const RuleRefuse = "Refuse"
 const RuleSkip = "Skip"
 
+// 拦截IP-端口，因为验证ip有时间差，攻击频率太高会导致防火墙重复添加。
+var RefuseMap = make(map[string]bool)
+
 func Init() {
 	rateInit()
 }
@@ -146,6 +149,24 @@ func checkRate(ip string, port int) (refuse bool, count int) {
 }
 
 func refuse(ip, name string, port int) {
+	// 检测IP是否有添加记录
+	if _, ok := RefuseMap[ip]; ok {
+		// ip添加
+		return
+	}
+
+	// 检测IP:Port是否有添加记录
+	if port != -1 {
+		key := fmt.Sprintf("%s:%d", ip, port)
+		if _, ok := RefuseMap[key]; ok {
+			return
+		}
+
+		RefuseMap[key] = true
+	} else {
+		RefuseMap[ip] = true
+	}
+
 	cmd := ""
 	switch config.Cfg.TablesType {
 	case "iptables":
