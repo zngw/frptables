@@ -46,7 +46,15 @@ type IpInfo struct {
 	Query       string `json:"query,omitempty"`
 }
 
-func GetIpInfo(ip string) (info IpInfo) {
+var ips = make(map[string]*IpInfo)
+
+func GetIpInfo(ip string) (info *IpInfo) {
+	if v, ok := ips[ip]; ok {
+		info = v
+		return
+	}
+
+	info = new(IpInfo)
 	info.Status = "fail"
 
 	const url = "http://ip-api.com/json/"
@@ -68,6 +76,8 @@ func GetIpInfo(ip string) (info IpInfo) {
 			return
 		}
 	}
+
+	ips[ip] = info
 
 	return
 }
