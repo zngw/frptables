@@ -90,12 +90,12 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 			continue
 		}
 
-		if v.RegionName != "" && v.Country != ipInfo.Region {
+		if v.RegionName != "" && v.RegionName != ipInfo.Region {
 			// 省不匹配
 			continue
 		}
 
-		if v.City != "" && v.Country != ipInfo.City {
+		if v.City != "" && v.City != ipInfo.City {
 			// 城市不匹配
 			continue
 		}
