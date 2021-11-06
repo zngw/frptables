@@ -1,3 +1,31 @@
+[comment]: <> (dtapps)
+[![GitHub Org's stars](https://img.shields.io/github/stars/zngw)](https://github.com/zngw)
+
+[comment]: <> (go)
+[![godoc](https://pkg.go.dev/badge/github.com/zngw/frptables?status.svg)](https://pkg.go.dev/github.com/zngw/frptables)
+[![oproxy.cn](https://goproxy.cn/stats/github.com/zngw/frptables/badges/download-count.svg)](https://goproxy.cn/stats/github.com/zngw/frptables)
+[![goreportcard.com](https://goreportcard.com/badge/github.com/zngw/frptables)](https://goreportcard.com/report/github.com/zngw/frptables)
+[![deps.dev](https://img.shields.io/badge/deps-go-red.svg)](https://deps.dev/go/github.com%2Fdtapps%2Fgo-ssh-tunnel)
+
+[comment]: <> (github.com)
+[![watchers](https://badgen.net/github/watchers/zngw/frptables)](https://github.com/zngw/frptables/watchers)
+[![stars](https://badgen.net/github/stars/zngw/frptables)](https://github.com/zngw/frptables/stargazers)
+[![forks](https://badgen.net/github/forks/zngw/frptables)](https://github.com/zngw/frptables/network/members)
+[![issues](https://badgen.net/github/issues/zngw/frptables)](https://github.com/zngw/frptables/issues)
+[![branches](https://badgen.net/github/branches/zngw/frptables)](https://github.com/zngw/frptables/branches)
+[![releases](https://badgen.net/github/releases/zngw/frptables)](https://github.com/zngw/frptables/releases)
+[![tags](https://badgen.net/github/tags/zngw/frptables)](https://github.com/zngw/frptables/tags)
+[![license](https://badgen.net/github/license/zngw/frptables)](https://github.com/zngw/frptables/blob/master/LICENSE)
+[![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/zngw/frptables)](https://github.com/zngw/frptables)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/zngw/frptables)](https://github.com/zngw/frptables/releases)
+[![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/zngw/frptables)](https://github.com/zngw/frptables/tags)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/zngw/frptables)](https://github.com/zngw/frptables/pulls)
+[![GitHub issues](https://img.shields.io/github/issues/zngw/frptables)](https://github.com/zngw/frptables/issues)
+[![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/zngw/frptables)](https://github.com/zngw/frptables)
+[![GitHub language count](https://img.shields.io/github/languages/count/zngw/frptables)](https://github.com/zngw/frptables)
+[![GitHub search hit counter](https://img.shields.io/github/search/zngw/frptables/go)](https://github.com/zngw/frptables)
+[![GitHub top language](https://img.shields.io/github/languages/top/zngw/frptables)](https://github.com/zngw/frptables)
+
 # frptables
 监控frps日志文件，自定义规则，使用系统自带的防火墙(iptables、firewall、Microsoft Defender)拦截tcp连接的ip，防止暴力破解
 
