@@ -24,26 +24,20 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
 
 // 配置文件结构体
 type IpInfo struct {
-	Status      string `json:"status,omitempty"`
-	Country     string `json:"country,omitempty"`
-	CountryCode string `json:"countryCode,omitempty"`
-	Region      string `json:"region,omitempty"`
-	RegionName  string `json:"regionName,omitempty"`
-	City        string `json:"city,omitempty"`
-	Zip         string `json:"zip,omitempty"`
-	Lat         string `json:"lat,omitempty"`
-	Lon         string `json:"lon,omitempty"`
-	Timezone    string `json:"timezone,omitempty"`
-	Isp         string `json:"isp,omitempty"`
-	Org         string `json:"org,omitempty"`
-	As          string `json:"as,omitempty"`
-	Query       string `json:"query,omitempty"`
+	Status     string `json:"status,omitempty"`
+	Country    string `json:"country,omitempty"`
+	RegionName string `json:"regionName,omitempty"`
+	Region     string `json:"region,omitempty"`
+	City       string `json:"city,omitempty"`
+	Isp        string `json:"isp,omitempty"`
+	Query      string `json:"query,omitempty"`
 }
 
 var ips = make(map[string]*IpInfo)
@@ -54,10 +48,123 @@ func GetIpInfo(ip string) (info *IpInfo) {
 		return
 	}
 
+	// 默认使用淘宝ip地址库
+	info = getIpInfoTaoBao(ip)
+
+	// 超出访问频率，改用 ipip.net 再请求一次
+	if info.Status == "fail" {
+		info = getIpInfoByIpIp(ip)
+	}
+
+	// 超出访问频率，改用 ip-api 再请求一次
+	if info.Status == "fail" {
+		info = getIpInfoByIpApi(ip)
+	}
+
+	return
+}
+
+// 淘宝ip地址库
+// 限制频率:每个用户的访问频率需小于1qps
+func getIpInfoTaoBao(ip string) (info *IpInfo) {
 	info = new(IpInfo)
 	info.Status = "fail"
 
-	const url = "http://ip-api.com/json/"
+	url := fmt.Sprintf("https://ip.taobao.com/outGetIpInfo?ip=%s&accessKey=alibaba-inc", ip)
+	resp, err := http.Get(url)
+	if err != nil {
+		// 读取网页数据错误
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		// 读取网页数据错误
+		return
+	}
+
+	if resp.StatusCode == 200 {
+		var result map[string]interface{}
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			// 网页解析错误
+			return
+		}
+
+		v,ok :=result["code"]
+		if !ok || int(v.(float64)) != 0 {
+			// 数据错误
+			return
+		}
+
+		d := result["data"]
+		data, err := json.Marshal(d)
+		if err != nil {
+			return
+		}
+
+		err = json.Unmarshal(data,&info)
+		if err != nil {
+			return
+		}
+
+		info.Status = "success"
+		info.RegionName = info.Region
+		info.Query = ip
+	}
+
+	return
+}
+
+// 通过ipip.net获取ip地理位置信息
+// 有访问频率限制
+func getIpInfoByIpIp(ip string) (info *IpInfo) {
+	info = new(IpInfo)
+	info.Status = "fail"
+
+	url := fmt.Sprintf("http://freeapi.ipip.net/%s", ip)
+	resp, err := http.Get(url + ip)
+	if err != nil {
+		// 读取网页数据错误
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		// 读取网页数据错误
+		return
+	}
+
+	if resp.StatusCode == 200 {
+		var result []string
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			// 网页解析错误
+			return
+		}
+
+		if len(result) == 5 {
+			info.Status = "success"
+			info.Country = result[0]
+			info.RegionName = result[1]
+			info.City = result[2]
+			info.Isp = result[4]
+			info.Query = ip
+		}
+	}
+
+	return
+}
+
+// 通过ip-api.com获取ip地理位置信息
+// 由于ip-api.com是国外的网站，对国内市级ip位置有一定误差
+func getIpInfoByIpApi(ip string) (info *IpInfo) {
+	info = new(IpInfo)
+	info.Status = "fail"
+
+	url := fmt.Sprintf("http://ip-api.com/json/%s?lang=zh-CN", ip)
 	resp, err := http.Get(url + ip + "?lang=zh-CN")
 	if err != nil {
 		// 获取不到地理位置，
