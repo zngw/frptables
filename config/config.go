@@ -31,6 +31,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -84,6 +85,8 @@ func (c *Conf) Load(file string) (err error) {
 
 	c.RateMaxTime = 0
 	for _, v := range c.Rules {
+		v.RegionName = strings.TrimSuffix(v.RegionName,"省")
+		v.City = strings.TrimSuffix(v.City,"市")
 		if c.RateMaxTime < v.Time {
 			c.RateMaxTime = v.Time
 		}

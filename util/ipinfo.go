@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // 配置文件结构体
@@ -60,6 +61,9 @@ func GetIpInfo(ip string) (info *IpInfo) {
 	if info.Status == "fail" {
 		info = getIpInfoByIpApi(ip)
 	}
+
+	info.RegionName = strings.TrimSuffix(info.RegionName,"省")
+	info.City = strings.TrimSuffix(info.City, "市")
 
 	return
 }
