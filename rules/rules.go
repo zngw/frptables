@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"github.com/zngw/frptables/config"
 	"github.com/zngw/frptables/util"
+	"github.com/zngw/zipinfo/ipinfo"
 	"github.com/zngw/log"
 )
 
@@ -71,8 +72,8 @@ func checkAllow(ip string, port int) bool {
 }
 
 func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
-	ipInfo := util.GetIpInfo(ip)
-	if ipInfo.Status != "success" {
+	err, ipInfo := ipinfo.GetIpInfo(ip)
+	if err !=nil || ipInfo.Status != "success" {
 		// 地址获取不成功，跳过
 		refuse = false
 		p = -1
@@ -90,7 +91,7 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 			continue
 		}
 
-		if v.RegionName != "" && v.RegionName != ipInfo.RegionName {
+		if v.RegionName != "" && v.RegionName != ipInfo.Region {
 			// 省不匹配
 			continue
 		}
@@ -101,7 +102,7 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 		}
 
 		p = v.Port
-		desc = fmt.Sprintf("%s,%s,%s", ipInfo.Country, ipInfo.RegionName, ipInfo.City)
+		desc = fmt.Sprintf("%s,%s,%s", ipInfo.Country, ipInfo.Region, ipInfo.City)
 
 		// 跳过
 		if v.Count < 0 {

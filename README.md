@@ -78,7 +78,7 @@ allow_port:
 rules:
 
   # 按数组顺序来，匹配到了就按匹配的规则执行，跳过此规则。
-  # 地区以 http://ip-api.com/json/?lang=zh-CN 查询的结果为准
+  # 地区 country-国家， regionName-省名，名字中不带省字， city-市名，名字中也不带市字
   # 端口: -1 所有端口
   # time: 时间区间
   # count: 访问次数，-1不限，0限制。其他为 time时间内访问count次，超出频率就限制
@@ -94,7 +94,7 @@ rules:
   - # 中国地区IP 10分钟3次，超出这频率添加防火墙
     port: -1
     country: 中国
-    regionName:
+    regionName: 浙江
     city:
     time: 600
     count: 3

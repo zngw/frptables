@@ -56,10 +56,7 @@ func main() {
 	_, file := filepath.Split(os.Args[0])
 	logFile, _ := filepath.Abs(config.Cfg.Logs)
 	logFile = filepath.Join(config.Cfg.Logs, file)
-	err = log.Init(logFile, []string{"add", "link", "net", "sys"})
-	if err != nil {
-		panic(err)
-	}
+	log.InitLog("all", logFile, "trace", 7, true, []string{"add", "link", "net", "sys"})
 
 	// 初始化规则
 	rules.Init()
@@ -75,18 +72,18 @@ func main() {
 	})
 
 	if err != nil {
-		log.Error("tail file failed, err:", err)
+		log.Error("sys","tail file failed, err:%v", err)
 		return
 	}
 
-	log.Trace("sys", "frptables 已启动，正在监听日志文件：", frpLog)
+	log.Trace("sys", "frptables 已启动，正在监听日志文件：%s", frpLog)
 	var line *tail.Line
 	var ok bool
 
 	for {
 		line, ok = <-tails.Lines
 		if !ok {
-			log.Error("tail file close reopen, filename:%s\n", tails.Filename)
+			log.Error("sys","tail file close reopen, filename:%s\n", tails.Filename)
 			time.Sleep(time.Second)
 			continue
 		}
