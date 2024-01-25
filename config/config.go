@@ -50,6 +50,7 @@ type Conf struct {
 	AllowIp     []string       `yaml:"allow_ip,omitempty"`    // ip白名单
 	AllowPort   []int          `yaml:"allow_port,omitempty"`  // 端口白名单
 	Rules       []CfgRules     `yaml:"rules,omitempty"`       // 规则访问
+	IpInfo      string         `yaml:"ipinfo,omitempty"`      // 规则访问
 	RateMaxTime int64          `yaml:"-"`                     // IP频率中最高超时时间
 }
 
@@ -85,8 +86,8 @@ func (c *Conf) Load(file string) (err error) {
 
 	c.RateMaxTime = 0
 	for _, v := range c.Rules {
-		v.RegionName = strings.TrimSuffix(v.RegionName,"省")
-		v.City = strings.TrimSuffix(v.City,"市")
+		v.RegionName = strings.TrimSuffix(v.RegionName, "省")
+		v.City = strings.TrimSuffix(v.City, "市")
 		if c.RateMaxTime < v.Time {
 			c.RateMaxTime = v.Time
 		}

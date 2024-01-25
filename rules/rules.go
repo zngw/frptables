@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"github.com/zngw/frptables/config"
 	"github.com/zngw/frptables/util"
-	"github.com/zngw/zipinfo/ipinfo"
 	"github.com/zngw/log"
+	"github.com/zngw/zipinfo/ipinfo"
 )
 
 // 拦截IP-端口，因为验证ip有时间差，攻击频率太高会导致防火墙重复添加。
@@ -37,6 +37,8 @@ func Init() {
 	rateInit()
 }
 
+// ip规则判断
+// ip-访问者IP，name-连接名字，port-连接端口
 func rules(ip, name string, port int) {
 	// 检查白名单
 	if checkAllow(ip, port) {
@@ -55,6 +57,7 @@ func rules(ip, name string, port int) {
 	}
 }
 
+// 检查白名单
 func checkAllow(ip string, port int) bool {
 	for _, v := range config.Cfg.AllowIp {
 		if v == ip {
@@ -71,14 +74,27 @@ func checkAllow(ip string, port int) bool {
 	return false
 }
 
+// 检测访问规则
+// ip-访问者IP， port-转发端口
+// 返回： refuse-是否加入规则拒绝访问, desc-描述， p-拒绝访问端口, count-规则间隔内访问次数
 func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
-	err, ipInfo := ipinfo.GetIpInfo(ip)
-	if err !=nil || ipInfo.Status != "success" {
-		// 地址获取不成功，跳过
-		refuse = false
-		p = -1
-		return
+	info := getIpHistory(ip)
+	if !info.HasInfo {
+		err, ipInfo := ipinfo.GetIpInfo(ip)
+		info.HasInfo = true
+
+		if err != nil || ipInfo.Status != "success" {
+			// 地址获取不成功，跳过
+			refuse = false
+			p = -1
+			return
+		}
+
+		info.Country = ipInfo.Country
+		info.Region = ipInfo.Region
+		info.City = ipInfo.City
 	}
+	info.Add()
 
 	for _, v := range config.Cfg.Rules {
 		if v.Port != -1 && v.Port != port {
@@ -86,23 +102,23 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 			continue
 		}
 
-		if v.Country != "" && v.Country != ipInfo.Country {
+		if v.Country != "" && v.Country != info.Country {
 			// 国家不匹配
 			continue
 		}
 
-		if v.RegionName != "" && v.RegionName != ipInfo.Region {
+		if v.RegionName != "" && v.RegionName != info.Region {
 			// 省不匹配
 			continue
 		}
 
-		if v.City != "" && v.City != ipInfo.City {
+		if v.City != "" && v.City != info.City {
 			// 城市不匹配
 			continue
 		}
 
 		p = v.Port
-		desc = fmt.Sprintf("%s,%s,%s", ipInfo.Country, ipInfo.Region, ipInfo.City)
+		desc = fmt.Sprintf("%s,%s,%s", info.Country, info.Region, info.City)
 
 		// 跳过
 		if v.Count < 0 {
@@ -116,7 +132,6 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 			return
 		}
 
-		info := getIpHistory(ip, port)
 		count = info.Count(v.Time)
 		if count <= v.Count {
 			refuse = false
@@ -131,6 +146,7 @@ func checkRules(ip string, port int) (refuse bool, desc string, p, count int) {
 	return
 }
 
+// 添加防火墙，拒绝访问
 func refuse(ip, name string, port int) {
 	// 检测IP是否有添加记录
 	if _, ok := RefuseMap[ip]; ok {

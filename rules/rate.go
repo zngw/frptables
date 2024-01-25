@@ -33,15 +33,16 @@ import (
 var ips = sync.Map{}
 
 type history struct {
-	Ip   string
-	Port int
-	List []int64
+	Ip      string  // ip
+	HasInfo bool    // 是否请求过IP地址信息
+	Country string  // 国家
+	Region  string  // 省
+	City    string  // 城市
+	List    []int64 // 访问时间列表
 }
 
-func (h *history) Init(ip string, port int) {
+func (h *history) Init(ip string) {
 	h.Ip = ip
-	h.Port = port
-	h.Add()
 }
 
 func (h *history) Add() {
@@ -91,18 +92,16 @@ func rateInit() {
 	}()
 }
 
-func getIpHistory(ip string, port int) (h *history) {
-	key := fmt.Sprintf("%s:%d", ip, port)
-	tmp, ok := ips.Load(key)
+func getIpHistory(ip string) (h *history) {
+	tmp, ok := ips.Load(ip)
 	if !ok {
 		h = new(history)
-		h.Init(ip, port)
-		ips.Store(key, h)
+		h.Init(ip)
+		ips.Store(ip, h)
 		return
 	}
 
 	h = tmp.(*history)
-	h.Add()
 	return
 }
 

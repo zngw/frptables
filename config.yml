@@ -6,10 +6,11 @@ logs: ./tlog/
 
 # frps 名字端口对应配置
 name_port:
-  "ZNGW": 3389
+  "S0-SSH": 5322
+  "家里电脑": 5355
 
 # 启用防火墙类型 iptables / firewall / md (Microsoft Defender)
-tables_type: firewall
+tables_type: iptables
 
 # ip白名单:
 allow_ip:
@@ -17,8 +18,8 @@ allow_ip:
 
 # 端口白名单
 allow_port:
-  - 80
-  - 443
+  - 8080
+  - 5443
 
 # 规则访问
 rules:
@@ -29,21 +30,21 @@ rules:
   # time: 时间区间
   # count: 访问次数，-1不限，0限制。其他为 time时间内访问count次，超出频率就限制
 
-  - # 中国上海IP允许
+  - # 中国浙江杭州IP允许
     port: -1
     country: 中国
-    regionName: 上海
-    city: 上海
-    time: 1
-    count: -1
+    regionName: 浙江
+    city: 杭州
+    time: 600
+    count: 100
 
-  - # 中国地区IP跳过地域判断
+  - # 中国地区IP 10分钟3次
     port: -1
     country: 中国
     regionName:
     city:
     time: 600
-    count: 3
+    count: 10
 
   - # 其他地区IP禁止
     port: -1

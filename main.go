@@ -23,15 +23,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/hpcloud/tail"
 	"github.com/zngw/frptables/config"
 	"github.com/zngw/frptables/rules"
 	"github.com/zngw/log"
+	"github.com/zngw/zipinfo/ipinfo"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 func main() {
@@ -58,6 +59,12 @@ func main() {
 	logFile = filepath.Join(config.Cfg.Logs, file)
 	log.InitLog("all", logFile, "trace", 7, true, []string{"add", "link", "net", "sys"})
 
+	var ipCfg []interface{}
+	err = json.Unmarshal([]byte(config.Cfg.IpInfo), &ipCfg)
+	if err == nil {
+		ipinfo.Init(ipCfg)
+	}
+
 	// 初始化规则
 	rules.Init()
 
@@ -72,7 +79,7 @@ func main() {
 	})
 
 	if err != nil {
-		log.Error("sys","tail file failed, err:%v", err)
+		log.Error("sys", "tail file failed, err:%v", err)
 		return
 	}
 
@@ -83,7 +90,7 @@ func main() {
 	for {
 		line, ok = <-tails.Lines
 		if !ok {
-			log.Error("sys","tail file close reopen, filename:%s\n", tails.Filename)
+			log.Error("sys", "tail file close reopen, filename:%s\n", tails.Filename)
 			time.Sleep(time.Second)
 			continue
 		}

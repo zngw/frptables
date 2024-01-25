@@ -25,44 +25,39 @@ package rules
 import (
 	"fmt"
 	"github.com/zngw/frptables/config"
+	"regexp"
 	"strings"
 )
 
+// 解析日志
 func parse(text string) (err error, ip, name string, port int) {
 	// 从frp日志中获取tcp连接信息
-	// 2021/08/21 15:35:29 [I] [proxy.go:162] [f1aec30e84827422] [ZNGW] get a user connection [210.0.159.76:32832]
+	// 2024/01/24 20:37:51 [I] [proxy.go:204] [de369b802e44e3f9] [S0-SSH] get a user connection [185.226.106.34:40432]
 	if !strings.Contains(text, "get a user connection") {
 		err = fmt.Errorf("not tcp link")
 		return
 	}
 
-	// 获取ip
-	begin := strings.LastIndex(text, "[")
-	end := strings.LastIndex(text, "]")
-	if begin < 0 || end <= begin {
-		err = fmt.Errorf("formt error")
+	// 正则表达式获取转发名和请求ID
+	compileRegex := regexp.MustCompile("^* \\[I] \\[.*] \\[.*] \\[(.*?)] get a user connection \\[(.*?)]")
+	matchArr := compileRegex.FindStringSubmatch(text)
+
+	if len(matchArr) <= 2 {
+		err = fmt.Errorf("not tcp link")
 		return
 	}
 
-	linker := text[begin+1 : end]
-	linkerArray := strings.Split(linker, ":")
-	if len(linkerArray) != 2 {
-		err = fmt.Errorf("formt error")
+	// 转发名
+	name = matchArr[1]
+	addr := matchArr[2]
+	addrArray := strings.Split(addr, ":")
+	if len(addrArray) != 2 {
+		err = fmt.Errorf(addr + " addr error")
 		return
 	}
 
-	ip = linkerArray[0]
-
-	// 获取 Name
-	tmp := text[0:begin]
-	begin = strings.LastIndex(tmp, "[")
-	end = strings.LastIndex(tmp, "]")
-	if begin < 0 || end <= begin {
-		err = fmt.Errorf("formt error")
-		return
-	}
-
-	name = text[begin+1 : end]
+	// 请求IP
+	ip = addrArray[0]
 
 	if v, ok := config.Cfg.NamePort[name]; ok {
 		port = v
