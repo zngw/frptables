@@ -23,20 +23,12 @@
 package config
 
 import (
-	"fmt"
-	"github.com/zngw/frptables/util"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 )
-
-const key = "1ba5d2dd59cc478e"
-const url = "127.0.0.1:18055"
 
 var cfgFile string
 var Cfg Conf
@@ -95,68 +87,19 @@ func (c *Conf) Load(file string) (err error) {
 	return
 }
 
+// Init 初始化配置
 func Init(file string) (err error) {
 	cfgFile = file
 	err = Cfg.Load(cfgFile)
-
-	// 监听本地端口，接受reload指令
-	go func() {
-		http.HandleFunc("/reload", reload)
-		err := http.ListenAndServe(url, nil) // 设置监听的端口
-		if err != nil {
-			log.Fatal("ListenAndServe: ", err)
-		}
-	}()
-
 	return
 }
 
-// 发送Reload指令
-func SendReload() {
-	tm := strconv.FormatInt(time.Now().Unix(), 10)
-	sign := util.Md5sum(tm + key)
-	u := "http://" + url + fmt.Sprintf("/reload?time=%s&sign=%s", tm, sign)
-	fmt.Println(u)
-	resp, err := http.Get(u)
+// ReloadConfig 重新加载配置（供 signal handler 调用）
+func ReloadConfig() {
+	err := Cfg.Load(cfgFile)
 	if err != nil {
-		// 获取不到地理位置，
-		fmt.Println(err)
+		log.Printf("Failed to reload config: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		// 读取网页数据错误
-		fmt.Println(err)
-		return
-	}
-	if resp.StatusCode == 200 {
-		fmt.Println(string(body))
-	}
-}
-
-func reload(w http.ResponseWriter, r *http.Request) {
-	_ = r.ParseForm() // 解析参数，默认是不会解析的
-	tm := r.Form.Get("time")
-	sign := r.Form.Get("sign")
-
-	if util.Md5sum(tm+key) != sign {
-		_, _ = w.Write([]byte("sign error"))
-		return
-	}
-
-	t, err := strconv.ParseInt(tm, 10, 64)
-	if err != nil || t+1 < time.Now().Unix() {
-		_, _ = w.Write([]byte("time error"))
-		return
-	}
-
-	err = Cfg.Load(cfgFile)
-	if err != nil {
-		_, _ = w.Write([]byte("config error"))
-		return
-	}
-
-	_, _ = w.Write([]byte("reload success"))
-	return
+	log.Println("Config reloaded successfully")
 }

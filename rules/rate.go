@@ -24,9 +24,10 @@ package rules
 
 import (
 	"fmt"
-	"github.com/zngw/frptables/config"
 	"sync"
 	"time"
+
+	"github.com/zngw/frptables/config"
 )
 
 // 用线程安装的map保存ip记录

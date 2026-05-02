@@ -24,13 +24,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/hpcloud/tail"
 	"github.com/zngw/frptables/config"
 	"github.com/zngw/frptables/rules"
 	"github.com/zngw/golib/log"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 func main() {
@@ -41,7 +43,10 @@ func main() {
 
 	if *s == "reload" {
 		// 如果是reload，发送reload指令后退出
-		config.SendReload()
+		err := config.SendReload()
+		if err != nil {
+			fmt.Println("Reload error:", err)
+		}
 		return
 	}
 
@@ -50,6 +55,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 保存 PID 文件（仅 server 模式）
+	err = config.SavePid()
+	if err != nil {
+		log.Error("sys", "Failed to save pid file: %v", err)
+	}
+
+	// 设置退出时清理 PID 文件
+	defer config.RemovePid()
+
+	// 设置 reload signal handler
+	config.SetupReloadHandler(config.ReloadConfig)
 
 	// 初始化日志
 	_, file := filepath.Split(os.Args[0])

@@ -23,17 +23,17 @@
 package rules
 
 import (
-	"encoding/json"
 	"fmt"
+	"net"
+
 	"github.com/zngw/frptables/config"
 	"github.com/zngw/frptables/util"
 	"github.com/zngw/golib/log"
-	"io"
-	"net/http"
+	"github.com/zngw/golib/set"
 )
 
-// 拦截IP-端口，因为验证ip有时间差，攻击频率太高会导致防火墙重复添加。
-var RefuseMap = make(map[string]bool)
+// RefuseMap 拦截IP-端口，因为验证ip有时间差，攻击频率太高会导致防火墙重复添加。
+var RefuseMap = set.New()
 
 func Init() {
 	rateInit()
@@ -76,58 +76,23 @@ func checkAllow(ip string, port int) bool {
 	return false
 }
 
-// 检测访问规则
+// CheckRules 检测访问规则
 // ip-访问者IP， port-转发端口
 // 返回： refuse-是否加入规则拒绝访问, desc-描述， p-拒绝访问端口, count-规则间隔内访问次数
 func CheckRules(ip string, port int) (refuse bool, desc string, p, count int) {
 	info := getIpHistory(ip)
 	if !info.HasInfo {
-		// 通过 https://ip.zengwu.com.cn?ip= 接口获取ip归属地信息
-		// 详细文档可查看： https://zengwu.com.cn/archives/ip
-		// 这里也可以切换成自己的ip查询
-		client := &http.Client{}
-		req, _ := http.NewRequest("GET", "https://ip.zengwu.com.cn?ip="+ip, nil)
-		resp, err := client.Do(req)
-		if err != nil {
-			// 读取网页数据错误
-			return
-		}
-
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil || resp.StatusCode != 200 {
-			// 读取网页数据错误
-			return
-		}
-
-		var jsonInfo struct {
-			Result   int32  `json:"result,omitempty"`   // 状态
-			Country  string `json:"country,omitempty"`  // 国家
-			Province string `json:"province,omitempty"` // 省
-			City     string `json:"city,omitempty"`     // 城市
-			Isp      string `json:"isp,omitempty"`      // 运营商
-			Query    string `json:"query,omitempty"`    // 查询IP
-			Time     int64  `json:"time,omitempty"`     // 查询时间
-		}
-
-		err = json.Unmarshal(body, &jsonInfo)
-		if err != nil {
-			return
-		}
-
-		info.HasInfo = true
-
-		if err != nil || jsonInfo.Result != 0 {
-			// 地址获取不成功，跳过
+		ok, Country, Region, City := util.GetIpInfo(ip)
+		if !ok {
 			refuse = false
-			p = -1
 			return
 		}
 
-		info.Country = jsonInfo.Country
-		info.Region = jsonInfo.Province
-		info.City = jsonInfo.City
-		// 获取IP信息结束
+		refuse = true
+		info.HasInfo = true
+		info.Country = Country
+		info.Region = Region
+		info.City = City
 	}
 	info.Add()
 
@@ -183,8 +148,15 @@ func CheckRules(ip string, port int) (refuse bool, desc string, p, count int) {
 
 // 添加防火墙，拒绝访问
 func refuse(ip, name string, port int) {
+	// 验证 IP 地址合法性
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		log.Error("sys", "Invalid IP address: %s", ip)
+		return
+	}
+
 	// 检测IP是否有添加记录
-	if _, ok := RefuseMap[ip]; ok {
+	if RefuseMap.Has(ip) {
 		// ip添加
 		return
 	}
@@ -192,31 +164,56 @@ func refuse(ip, name string, port int) {
 	// 检测IP:Port是否有添加记录
 	if port != -1 {
 		key := fmt.Sprintf("%s:%d", ip, port)
-		if _, ok := RefuseMap[key]; ok {
+		if RefuseMap.Has(key) {
 			return
 		}
 
-		RefuseMap[key] = true
+		RefuseMap.Add(key)
 	} else {
-		RefuseMap[ip] = true
+		RefuseMap.Add(ip)
 	}
+
+	// 判断是否为 IPv6
+	isIPv6 := parsedIP.To4() == nil
 
 	cmd := ""
 	switch config.Cfg.TablesType {
 	case "iptables":
-		if port == -1 {
-			cmd = fmt.Sprintf("iptables -I INPUT -s %s -j DROP", ip)
+		if isIPv6 {
+			// IPv6 使用 ip6tables
+			if port == -1 {
+				cmd = fmt.Sprintf("ip6tables -I INPUT -s %s -j DROP", ip)
+			} else {
+				cmd = fmt.Sprintf("ip6tables -I INPUT -s %s -ptcp --dport %d -j DROP", ip, port)
+			}
 		} else {
-			cmd = fmt.Sprintf("iptables -I INPUT -s %s -ptcp --dport %d -j DROP", ip, port)
+			// IPv4 使用 iptables
+			if port == -1 {
+				cmd = fmt.Sprintf("iptables -I INPUT -s %s -j DROP", ip)
+			} else {
+				cmd = fmt.Sprintf("iptables -I INPUT -s %s -ptcp --dport %d -j DROP", ip, port)
+			}
 		}
 	case "firewall":
+		family := "ipv4"
+		if isIPv6 {
+			family = "ipv6"
+		}
 		if port == -1 {
-			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" reject\"", ip)
+			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"%s\" source address=\"%s\" reject\"", family, ip)
 		} else {
-			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"ipv4\" source address=\"%s\" port protocol=\"tcp\" port=\"%d\" reject\"", ip, port)
+			cmd = fmt.Sprintf("firewall-cmd --permanent --add-rich-rule=\"rule family=\"%s\" source address=\"%s\" port protocol=\"tcp\" port=\"%d\" reject\"", family, ip, port)
 		}
 		cmd += "&& firewall-cmd --reload"
+	case "ufw":
+		// ufw 原生支持 IPv6（需要在 /etc/default/ufw 中启用 IPV6=yes）
+		if port == -1 {
+			cmd = fmt.Sprintf("ufw deny from %s", ip)
+		} else {
+			cmd = fmt.Sprintf("ufw deny from %s to any port %d", ip, port)
+		}
 	case "md":
+		// Windows netsh advfirewall
 		if port == -1 {
 			cmd = fmt.Sprintf("netsh advfirewall firewall add rule name=%s-%s dir=in action=block protocol=TCP remoteip=%s", name, ip, ip)
 		} else {

@@ -9,7 +9,7 @@ name_port:
   "S0-SSH": 5322
   "家里电脑": 5355
 
-# 启用防火墙类型 iptables / firewall / md (Microsoft Defender)
+# 启用防火墙类型 iptables / firewall / ufw / md (Microsoft Defender)
 tables_type: iptables
 
 # ip白名单:

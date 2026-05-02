@@ -24,22 +24,27 @@ package rules
 
 import (
 	"fmt"
-	"github.com/zngw/frptables/config"
 	"regexp"
 	"strings"
+
+	"github.com/zngw/frptables/config"
 )
 
 // 解析日志
 func parse(text string) (err error, ip, name string, port int) {
 	// 从frp日志中获取tcp连接信息
-	// 2024/01/24 20:37:51 [I] [proxy.go:204] [de369b802e44e3f9] [S0-SSH] get a user connection [185.226.106.34:40432]
+	// 2026-05-02 00:50:55.239 [I] [proxy/proxy.go:236] [5e6adf3e09951a2f] [家电脑.TCP-家] get a user connection [39.182.4.210:26652]
+	// 2026-05-02 01:11:16.477 [I] [proxy/proxy.go:236] [f1a4c9ca8a1e69b2] [小电脑.TCP-小] get a user connection [[2409:8a28:14e9:740:2905:c2ba:6c98:3ec5]:4754]
+	// IPv4: ... [39.182.4.210:26652]
+	// IPv6: ... [[2409:8a28:14e9:740:2905:c2ba:6c98:3ec5]:4754]
 	if !strings.Contains(text, "get a user connection") {
 		err = fmt.Errorf("not tcp link")
 		return
 	}
 
-	// 正则表达式获取转发名和请求ID
-	compileRegex := regexp.MustCompile("^* \\[I] \\[.*] \\[.*] \\[(.*?)] get a user connection \\[(.*?)]")
+	// 正则表达式获取转发名和地址
+	// 日志格式: ... [name] get a user connection [ip:port] 或 [[ipv6]:port]
+	compileRegex := regexp.MustCompile(`\[I\] \[.*?\] \[.*?\] \[(.*?)\] get a user connection (.*)`)
 	matchArr := compileRegex.FindStringSubmatch(text)
 
 	if len(matchArr) <= 2 {
@@ -49,15 +54,13 @@ func parse(text string) (err error, ip, name string, port int) {
 
 	// 转发名
 	name = matchArr[1]
-	addr := matchArr[2]
-	addrArray := strings.Split(addr, ":")
-	if len(addrArray) != 2 {
-		err = fmt.Errorf(addr + " addr error")
+	addr := strings.TrimSpace(matchArr[2]) // "[39.182.4.210:26652]" 或 "[[2409:8a28:14e9:740:2905:c2ba:6c98:3ec5]:4754]"
+
+	// 解析 IP 地址（支持 IPv4 和 IPv6）
+	ip, err = extractIP(addr)
+	if err != nil {
 		return
 	}
-
-	// 请求IP
-	ip = addrArray[0]
 
 	if v, ok := config.Cfg.NamePort[name]; ok {
 		port = v
@@ -66,4 +69,23 @@ func parse(text string) (err error, ip, name string, port int) {
 	}
 
 	return
+}
+
+// extractIP 从地址字符串中提取 IP（支持 IPv4 和 IPv6）
+// IPv4 格式: [ip:port]
+// IPv6 格式: [[ipv6]:port]
+func extractIP(addr string) (string, error) {
+	// 尝试 IPv6 格式：[[ipv6]:port]
+	ipv6Regex := regexp.MustCompile(`^\[\[([^\]]+)\]:\d+\]$`)
+	if match := ipv6Regex.FindStringSubmatch(addr); len(match) > 0 {
+		return match[1], nil
+	}
+
+	// 尝试 IPv4 格式：[ip:port]
+	ipv4Regex := regexp.MustCompile(`^\[([^:]+):\d+\]$`)
+	if match := ipv4Regex.FindStringSubmatch(addr); len(match) > 0 {
+		return match[1], nil
+	}
+
+	return "", fmt.Errorf("invalid addr: %s", addr)
 }
